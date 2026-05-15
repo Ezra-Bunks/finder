@@ -6,88 +6,39 @@ use App\Models\Post;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Category;
 
 class PostController extends Controller
 {
-    public function index()
-    {
-        return view('home');
+    public function index(Request $request)
+{
+    $institutionId = session('institution_id')
+        ?? auth()->user()?->institution_id;
+
+    if (!$institutionId) {
+        return redirect()->route('institution.select');
     }
 
-    public function create()
-    {
-        $categories = Category::all();
-        return view('posts.create', compact('categories'));
-    }
+    $posts = Post::where('institution_id', $institutionId)
+        ->where('status', 'active')
+        ->when($request->search, fn($q) =>
+            $q->where('title', 'like', "%{$request->search}%")
+        )
+        ->when($request->posted_on, fn($q) =>
+            $q->whereDate('created_at', $request->posted_on)
+        )
+        ->when($request->category_id, fn($q) =>
+            $q->where('category_id', $request->category_id)
+        )
+        ->orderByDesc('date_found')
+        ->orderByDesc('created_at')
+        ->get()
+        ->groupBy(fn($post) => $post->date_found->format('Y-m-d'));
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'title'          => ['required', 'string', 'max:255'],
-            'description'    => ['required', 'string'],
-            'category_id'    => ['required', 'exists:categories,id'],
-            'location_found' => ['required', 'string', 'max:255'],
-            'date_found'     => ['required', 'date', 'before_or_equal:today'],
-            'contact_phone'  => ['required', 'string', 'max:20'],
-            'photo'          => ['nullable', 'image', 'mimes:jpg,png,webp', 'max:2048'],
-        ]);
+    $categories = Category::orderBy('name')->get();
 
-        $photoPath = null;
-        if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('posts', 'public');
-        }
-
-        Post::create([
-            'user_id'        => Auth::id(),
-            'institution_id' => Auth::user()->institution_id,
-            'category_id'    => $request->category_id,
-            'title'          => $request->title,
-            'description'    => $request->description,
-            'location_found' => $request->location_found,
-            'date_found'     => $request->date_found,
-            'contact_phone'  => $request->contact_phone,
-            'photo_path'     => $photoPath,
-            'status'         => 'active',
-        ]);
-
-        return redirect()->route('home')->with('success', 'Post created successfully!');
-    }
-
-    public function edit(Post $post)
-    {
-        $categories = Category::all();
-        return view('posts.edit', compact('post', 'categories'));
-    }
-
-    public function update(Request $request, Post $post)
-    {
-        $request->validate([
-            'title'          => ['required', 'string', 'max:255'],
-            'description'    => ['required', 'string'],
-            'category_id'    => ['required', 'exists:categories,id'],
-            'location_found' => ['required', 'string', 'max:255'],
-            'date_found'     => ['required', 'date', 'before_or_equal:today'],
-            'contact_phone'  => ['required', 'string', 'max:20'],
-            'photo'          => ['nullable', 'image', 'mimes:jpg,png,webp', 'max:2048'],
-        ]);
-
-        $photoPath = $post->photo_path;
-        if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('posts', 'public');
-        }
-
-        $post->update([
-            'category_id'    => $request->category_id,
-            'title'          => $request->title,
-            'description'    => $request->description,
-            'location_found' => $request->location_found,
-            'date_found'     => $request->date_found,
-            'contact_phone'  => $request->contact_phone,
-            'photo_path'     => $photoPath,
-        ]);
-
-        return redirect()->route('posts.show', $post)->with('success', 'Post updated successfully!');
-    }
+    return view('dashboard', compact('posts', 'categories'));
+}
 
     public function archive()
     {
