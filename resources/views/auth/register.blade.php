@@ -38,7 +38,19 @@
 
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
-
+     <!-- Institution -->
+        <div class="mt-4">
+    <x-input-label for="institution_id" :value="__('Institution')" />
+    <select id="institution_id" name="institution_id" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" required>
+        <option value="">-- Select Institution --</option>
+        @foreach($institutions as $institution)
+            <option value="{{ $institution->id }}" {{ old('institution_id') == $institution->id ? 'selected' : '' }}>
+                {{ $institution->name }}
+            </option>
+        @endforeach
+    </select>
+    <x-input-error :messages="$errors->get('institution_id')" class="mt-2" />
+        </div>
         <div class="flex items-center justify-end mt-4">
             <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">
                 {{ __('Already registered?') }}
