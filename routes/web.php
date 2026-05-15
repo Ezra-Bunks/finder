@@ -20,6 +20,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+Route::get('/select-institution', [InstitutionController::class, 'index'])->name('institution.select');
+Route::post('/select-institution', [InstitutionController::class, 'store'])->name('institution.store');
 
 Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');
 
